@@ -24,6 +24,26 @@ for image in entry.outputs.values().flat_map(|o| &o.images) {
 }
 ```
 
+## Live progress (v0.2)
+
+```rust
+use comfyui_kit::ProgressEvent;
+
+let mut events = client.subscribe().await?;
+while let Some(event) = events.recv().await {
+    match event {
+        ProgressEvent::Progress { value, max, .. } => {
+            println!("sampling {value:.0}/{max:.0}");
+        }
+        ProgressEvent::Executed { node, .. } => println!("node {node} done"),
+        _ => {}
+    }
+}
+```
+
+Typed events for `executing` / `progress` / `executed` / `status`;
+binary preview frames surface as `ProgressEvent::Binary`.
+
 ## API surface
 
 | Method | Endpoint | Notes |

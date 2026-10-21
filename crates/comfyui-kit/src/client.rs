@@ -76,6 +76,50 @@ impl Client {
         format!("{ws_base}/ws?clientId={}", self.client_id)
     }
 
+    /// Subscribe to the WebSocket progress stream. Returns a receiver of
+    /// typed events; the read task ends when the server closes the
+    /// connection or the receiver is dropped. Binary preview frames
+    /// surface as [`ProgressEvent::Binary`].
+    ///
+    /// # Errors
+    /// Fails when the WebSocket connection cannot be established.
+    pub async fn subscribe(
+        &self,
+    ) -> Result<tokio::sync::mpsc::Receiver<crate::progress::ProgressEvent>> {
+        use futures_util::{SinkExt, StreamExt};
+        use tokio_tungstenite::tungstenite::Message;
+
+        let (tx, rx) = tokio::sync::mpsc::channel::<crate::progress::ProgressEvent>(128);
+        let url = self.ws_url();
+        tracing::debug!(%url, "connecting to comfyui websocket");
+        let (ws, _) = tokio_tungstenite::connect_async(url)
+            .await
+            .map_err(|e| ComfyError::Other(format!("websocket connect failed: {e}")))?;
+        let (mut write, mut read) = ws.split();
+
+        tokio::spawn(async move {
+            while let Some(frame) = read.next().await {
+                let deliver = match frame {
+                    Ok(Message::Text(text)) => crate::progress::parse_event(&text),
+                    Ok(Message::Binary(_)) => Some(crate::progress::ProgressEvent::Binary),
+                    Ok(Message::Close(_)) | Err(_) => break,
+                    _ => None,
+                };
+                match deliver {
+                    Some(event) => {
+                        if tx.send(event).await.is_err() {
+                            break; // receiver dropped
+                        }
+                    }
+                    None => continue,
+                }
+            }
+            let _ = write.close().await;
+        });
+
+        Ok(rx)
+    }
+
     /// Queue a workflow for execution.
     ///
     /// # Errors
