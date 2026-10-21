@@ -1,0 +1,43 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+exit = "deny"
+modulo_arithmetic = "warn"
+redundant_clone = "warn"
+unused_async = "warn"
+if_not_else = "warn"
+cognitive_complexity = "allow"
+too_many_arguments = "warn"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+authors = ["Wyatt Au"]
+license = "Apache-2.0"
+description = "Typed Rust client for the ComfyUI HTTP API — queue workflows, track history, fetch generations"
+repository = "https://github.com/WyattAu/comfyui-kit"
+homepage = "https://github.com/WyattAu/comfyui-kit"
+readme = "README.md"
+keywords = ["comfyui", "stable-diffusion", "image-generation", "api-client", "ai"]
+categories = ["api-bindings", "multimedia::images"]
+
+[workspace.dependencies]
+fetch-kit = "0.2"
+retry-backoff = { version = "0.2", features = ["impl_exponential_backoff"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+
+[profile.release]
+lto = "thin"
