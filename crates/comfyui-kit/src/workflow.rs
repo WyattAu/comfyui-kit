@@ -156,7 +156,7 @@ mod tests {
         let wf = Workflow::parse(broken).unwrap();
         let dangling = wf.dangling_refs();
         assert_eq!(dangling.len(), 1);
-        assert_eq!(dangling[0], ("99", String::new()));
+        assert_eq!(dangling[0], ("99".to_owned(), String::new()));
 
         let good = r#"{
             "3": { "class_type": "KSampler", "inputs": { "model": ["4", 0] } },

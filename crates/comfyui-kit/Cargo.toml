@@ -1,7 +1,7 @@
 [package]
 name = "comfyui-kit"
 description = "Typed Rust client for the ComfyUI HTTP API — queue workflows, track history, fetch generations"
-version = "0.2.1"
+version = "0.2.2"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
