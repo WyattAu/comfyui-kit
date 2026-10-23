@@ -5,7 +5,7 @@
 
 Typed Rust client for the [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
 HTTP API: queue workflows, read history, download generations, upload
-inputs — built on the estate's transport layer ([fetch-kit](https://crates.io/crates/fetch-kit)).
+inputs: built on the estate's transport layer ([fetch-kit](https://crates.io/crates/fetch-kit)).
 
 ```rust
 use comfyui_kit::{Client, Workflow};
@@ -54,12 +54,12 @@ binary preview frames surface as `ProgressEvent::Binary`.
 | `view` | `GET /view` | downloads a generated file as bytes |
 | `upload_image` | `POST /upload/image` | hand-rolled multipart (no extra deps) |
 | `interrupt` | `POST /interrupt` | stop the running prompt |
-| `ws_url` | — | WebSocket URL for progress events (bring a WS client; v0.2 may subscribe) |
+| `ws_url` |none|| WebSocket URL for progress events (bring a WS client; v0.2 may subscribe) |
 
 ## Design notes
 
 - **Strict queue errors**: workflow validation failures surface as
-  `ComfyError::NodeErrors` with the raw payload — not a generic 400.
+  `ComfyError::NodeErrors` with the raw payload: not a generic 400.
 - **Hand-rolled multipart**: the upload form is built byte-by-byte
   (tested), avoiding a reqwest-multipart dependency.
 - **No workflow DSL**: `Workflow` is a guarded wrapper over the graph
