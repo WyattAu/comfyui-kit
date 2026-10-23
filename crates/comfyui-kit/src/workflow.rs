@@ -42,6 +42,44 @@ impl Workflow {
         &self.0
     }
 
+    /// Validate that every node-to-node reference in the graph points to
+    /// an existing node. ComfyUI inputs like `["4", 0]` reference the
+    /// output of node `4`; a dangling reference fails at queue time on
+    /// the server — this catches it before the POST.
+    ///
+    /// Returns the list of dangling `(referencing node, referenced
+    /// node)` pairs; empty means the graph is internally consistent.
+    #[must_use]
+    pub fn dangling_refs(&self) -> Vec<(String, String)> {
+        let mut referenced: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        if let Some(map) = self.0.as_object() {
+            for (_id, node) in map {
+                if let Some(inputs) = node.get("inputs").and_then(|v| v.as_object()) {
+                    for input in inputs.values() {
+                        // Node references are arrays: ["<node_id>", <output slot>].
+                        if let Some(arr) = input.as_array() {
+                            if arr.len() == 2 {
+                                if let Some(target) = arr[0].as_str() {
+                                    referenced.insert(target.to_owned());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let existing: std::collections::BTreeSet<String> = self
+            .0
+            .as_object()
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or_default();
+        referenced
+            .difference(&existing)
+            .cloned()
+            .map(|target| (target, String::new()))
+            .collect()
+    }
+
     /// Node ids present in the graph.
     #[must_use]
     pub fn node_ids(&self) -> Vec<String> {
@@ -107,6 +145,24 @@ mod tests {
     fn parse_accepts_object_rejects_array() {
         assert!(Workflow::parse(GRAPH).is_ok());
         assert!(Workflow::parse("[]").is_err());
+    }
+
+    #[test]
+    fn dangling_refs_catch_broken_links() {
+        let broken = r#"{
+            "3": { "class_type": "KSampler", "inputs": { "model": ["99", 0], "image": ["4", 0] } },
+            "4": { "class_type": "LoadImage", "inputs": {} }
+        }"#;
+        let wf = Workflow::parse(broken).unwrap();
+        let dangling = wf.dangling_refs();
+        assert_eq!(dangling.len(), 1);
+        assert_eq!(dangling[0], ("99", String::new()));
+
+        let good = r#"{
+            "3": { "class_type": "KSampler", "inputs": { "model": ["4", 0] } },
+            "4": { "class_type": "LoadImage", "inputs": {} }
+        }"#;
+        assert!(Workflow::parse(good).unwrap().dangling_refs().is_empty());
     }
 
     #[test]
